@@ -5,7 +5,7 @@ import (
 	"path"
 )
 
-// Install a service to the windows system
+// Install a service to the system
 func (p *Program) Install(sourceDir string) error {
 
 	// Test if source binary exists
@@ -23,6 +23,24 @@ func (p *Program) Install(sourceDir string) error {
 
 	// Copy source binary into install dir
 	return copyFileContents(srcBin, dstBin)
+}
+
+// Uninstall service from the system
+func (p *Program) Uninstall() error {
+
+	// Unregister startup
+	if rmerr := p.DeregisterStartup(); rmerr != nil {
+		return rmerr
+	}
+
+	// Get install directory
+	dir, err := p.installDirectory()
+	if err != nil {
+		return err
+	}
+
+	// Remove installation directory
+	return os.RemoveAll(dir)
 }
 
 // Check if the program is installed

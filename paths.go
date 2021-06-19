@@ -39,6 +39,6 @@ func (p *Program) installPathBinWithArgs() (string, error) {
 
 // Returns a name safe to use for a directory and registry key
 func (p *Program) safeName() string {
-	nonAscii := regexp.MustCompile(`/[^A-Z0-9]/ig`)
+	nonAscii := regexp.MustCompile(`(?i)[^A-Z0-9]`)
 	return nonAscii.ReplaceAllLiteralString(p.Name, "-")
 }

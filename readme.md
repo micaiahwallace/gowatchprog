@@ -53,9 +53,8 @@ View the samples in the example directory on use cases.
 
 ## Roadmap
 
-- [] Core system features accessible via module import [install, autostart, watchdog]
-- [] Windows support
-- [] Mac OS support
-- [] Linux support
-- [] Remote update feature
-- [] Features accessible from command line utility (for non-go services)
+- [x] Windows support (AllUsers context support only for now)
+- [ ] Remote update feature
+- [ ] Mac OS support
+- [ ] Linux support
+- [ ] Features accessible from command line utility (for non-go services)
