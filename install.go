@@ -29,7 +29,7 @@ func (p *Program) Install(sourceDir string) error {
 func (p *Program) Uninstall() error {
 
 	// Unregister startup
-	if rmerr := p.DeregisterStartup(); rmerr != nil {
+	if rmerr := p.RemoveStartup(); rmerr != nil {
 		return rmerr
 	}
 

@@ -1,6 +1,7 @@
 package gowatchprog
 
 import (
+	"errors"
 	"os"
 	"path"
 )
@@ -12,7 +13,7 @@ func (p *Program) installDirectory() (string, error) {
 	case AllUsers:
 
 		// Check for all users profile env variable
-		profilePath := os.GetEnv("ALLUSERSPROFILE")
+		profilePath := os.Getenv("ALLUSERSPROFILE")
 		if len(profilePath) == 0 {
 			return "", errors.New("installation path not found")
 		}

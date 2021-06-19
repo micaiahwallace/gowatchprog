@@ -29,5 +29,5 @@ func removeRegistry(key registry.Key, path, keyName string) error {
 	}
 
 	// Remove the specified value
-	return registry.DeleteValue(keyName)
+	return key.DeleteValue(keyName)
 }

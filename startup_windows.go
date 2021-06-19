@@ -17,6 +17,8 @@ func (p *Program) RegisterStartup() error {
 		return writeRegistry(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows\CurrentVersion\Run`, p.safeName(), exePath)
 	default:
 	}
+
+	return nil
 }
 
 // Remove the installed service from startup
@@ -25,4 +27,6 @@ func (p *Program) RemoveStartup() error {
 	case AllUsers:
 		return removeRegistry(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows\CurrentVersion\Run`, p.safeName())
 	}
+
+	return nil
 }
