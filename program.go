@@ -1,5 +1,7 @@
 package gowatchprog
 
+import "time"
+
 type ProgramContext int
 
 const (
@@ -20,6 +22,15 @@ type Program struct {
 	// Arguments to append when service is run
 	Args []string
 
-	// Execution context of the service
+	// Installation and execution context of the service
 	Context ProgramContext
+
+	// Watchdog retry count before failing, -1 for unlimited
+	watchRetries int
+
+	// Watchdog interval between retries
+	watchRetryWait time.Duration
+
+	// Watchdog factor to increase wait interval each failed attempt
+	watchRetryIncrease int
 }
