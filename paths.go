@@ -27,10 +27,10 @@ func (p *Program) installPathBinWithArgs() (string, error) {
 		return "", patherr
 	}
 
-	// Append cli args
+	// Append program arguments to executable string
 	exePath = fmt.Sprintf(`"%s"`, exePath)
-	if p.Args != nil && len(p.Args) > 2 {
-		parts := append([]string{exePath}, p.Args[2:]...)
+	if p.Args != nil {
+		parts := append([]string{exePath}, p.Args...)
 		exePath = strings.Join(parts, " ")
 	}
 
