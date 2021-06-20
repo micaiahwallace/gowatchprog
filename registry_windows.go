@@ -1,6 +1,10 @@
 package gowatchprog
 
-import "golang.org/x/sys/windows/registry"
+import (
+	"fmt"
+
+	"golang.org/x/sys/windows/registry"
+)
 
 // Write a string value to a specified registry key on windows
 func writeRegistry(key registry.Key, path, keyName, keyValue string) error {
