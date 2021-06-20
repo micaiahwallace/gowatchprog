@@ -1,6 +1,7 @@
 package gowatchprog
 
 import (
+	"fmt"
 	"os"
 	"path"
 )
@@ -17,7 +18,7 @@ func (p *Program) Install(sourceDir string) error {
 		return dsterr
 	}
 	if mkdsterr := os.MkdirAll(dstDir, 0644); mkdsterr != nil {
-		return mkdsterr
+		return fmt.Errorf("unable to create install dir: %v", mkdsterr)
 	}
 	dstBin := path.Join(dstDir, p.ExeFile)
 
@@ -30,7 +31,7 @@ func (p *Program) Uninstall() error {
 
 	// Unregister startup
 	if rmerr := p.RemoveStartup(); rmerr != nil {
-		return rmerr
+		return fmt.Errorf("unable to remove startup: %v", rmerr)
 	}
 
 	// Get install directory
@@ -40,7 +41,10 @@ func (p *Program) Uninstall() error {
 	}
 
 	// Remove installation directory
-	return os.RemoveAll(dir)
+	if rderr := os.RemoveAll(dir); rderr != nil {
+		return fmt.Errorf("unable to remove install dir: %v", rderr)
+	}
+	return nil
 }
 
 // Check if the program is installed
