@@ -26,10 +26,23 @@ type Program struct {
 	// Arguments to append when service is run
 	Args []string
 
-	// Execution context of the service
+	// Installation and execution context of the service
 	Context ProgramContext
-}
 
+	// Watchdog retry count before failing, -1 for unlimited
+	WatchRetries int
+
+	// Watchdog interval between retries
+	WatchRetryWait time.Duration
+
+	// Watchdog factor to increase wait interval each failed attempt
+	WatchRetryIncrease int
+}
+```
+
+## Exported Functions
+
+```go
 // Start the watchdog runner
 func (p *Program) RunWatchdog(quit chan int)
 
@@ -49,9 +62,19 @@ func (p *Program) RemoveStartup() error
 func (p *Program) Uninstall() error
 ```
 
+## Constants
+
+```go
+const (
+
+	// The app should run under all users interactively
+	AllUsers ProgramContext = 0
+)
+```
+
 ## Example 
 
-View the samples in the example directory on use cases.
+You can see gowatchprog in action on one of my other projects [GoScreenMonit](https://github.com/micaiahwallace/goscreenmonit)
 
 ## Roadmap
 
