@@ -45,7 +45,7 @@ func (p *Program) RunWatchdog(quit chan int) {
 		log.Printf("service completed with error: %v\n", runErr)
 
 		// Check if retries exceeded
-		if failCount >= p.watchRetries {
+		if failCount >= p.watchRetries && p.watchRetries != -1 {
 			log.Println("retry count exceeded, now exiting")
 			break
 		}
