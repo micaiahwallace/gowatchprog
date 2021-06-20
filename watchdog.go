@@ -14,7 +14,7 @@ import (
 const PID_FILE = "watchdog.pid"
 
 // Start the watchdog runner
-func (p *Program) RunWatchdog(quit chan interface{}) {
+func (p *Program) RunWatchdog(quit chan int) {
 
 	// Register a new pid file
 	if !p.createWatchdogLock() {

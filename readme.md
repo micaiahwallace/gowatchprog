@@ -30,6 +30,8 @@ type Program struct {
 	Context ProgramContext
 }
 
+// Start the watchdog runner
+func (p *Program) RunWatchdog(quit chan int)
 
 // Check if the program is installed
 func (p *Program) Installed() bool
