@@ -45,13 +45,13 @@ func (p *Program) RunWatchdog(quit chan int) {
 		log.Printf("service completed with error: %v\n", runErr)
 
 		// Check if retries exceeded
-		if failCount >= p.watchRetries && p.watchRetries != -1 {
+		if failCount >= p.WatchRetries && p.WatchRetries != -1 {
 			log.Println("retry count exceeded, now exiting")
 			break
 		}
 
 		// Wait configured duration before retrying
-		time.Sleep(p.watchRetryWait * time.Duration(p.watchRetryIncrease*failCount))
+		time.Sleep(p.WatchRetryWait * time.Duration(p.WatchRetryIncrease*failCount))
 	}
 
 	// Remove pid file after completing watchdog

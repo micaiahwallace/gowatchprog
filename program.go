@@ -26,11 +26,11 @@ type Program struct {
 	Context ProgramContext
 
 	// Watchdog retry count before failing, -1 for unlimited
-	watchRetries int
+	WatchRetries int
 
 	// Watchdog interval between retries
-	watchRetryWait time.Duration
+	WatchRetryWait time.Duration
 
 	// Watchdog factor to increase wait interval each failed attempt
-	watchRetryIncrease int
+	WatchRetryIncrease int
 }
