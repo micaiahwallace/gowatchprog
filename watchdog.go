@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mitchellh/go-ps"
@@ -109,9 +110,11 @@ func (p *Program) canWatchdogLock(pidPath string) bool {
 		}
 	}
 
-	pidNum, nerr := strconv.Atoi(string(pidContents))
+	pidNum, nerr := strconv.Atoi(strings.TrimSpace(string(pidContents)))
 	if nerr != nil {
-		return false
+
+		// Invalid pid format, allow lock creation
+		return true
 	}
 
 	proc, perr := ps.FindProcess(pidNum)
@@ -121,6 +124,6 @@ func (p *Program) canWatchdogLock(pidPath string) bool {
 
 	currentBinFile := path.Base(os.Args[0])
 
-	// Test if actual process still exists at pid
+	// Ensure pid doesn't refer to same process binary
 	return proc.Executable() != currentBinFile
 }
