@@ -1,15 +1,17 @@
-# WatchProg - Service manager
-
-```shell
-go get github.com/micaiahwallace/gowatchprog
-```
+# GoWatchProg
 
 This module was created to help manage background services on machines by providing the following core feature sets.
 
 - Install to a proper location based on installation context (user, system, allusers)
-- Register service autostart based on service run context
-- Watchdog autorestart
+- Register service autostart based on service run context (user, system, allusers)
+- Watchdog autorestart (retry count, retry delay, retry delay increase)
 - Install updates remotely
+
+## Install
+
+```shell
+go get github.com/micaiahwallace/gowatchprog
+```
 
 ## Module Definition
 
@@ -103,7 +105,7 @@ You can see gowatchprog in action on one of my other projects [GoScreenMonit](ht
 
 ## Roadmap
 
-- [x] Windows support (AllUsers context support only for now)
+- [x] Windows support (Full context set not implemented for install / startup)
 - [ ] Remote update feature
 - [ ] Mac OS support
 - [ ] Linux support
