@@ -1,5 +1,7 @@
 # GoWatchProg
 
+## Project Status: ⚠️ early development
+
 This module was created to help manage background services on machines by providing the following core feature sets.
 
 - Install to a proper location based on installation context (user, system, allusers)
