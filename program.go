@@ -6,8 +6,11 @@ type ProgramContext int
 
 const (
 
-	// The app should run under all users interactively
+	// The installation context is global for all users
 	AllUsers ProgramContext = iota
+
+	// The installation context is set for the current user
+	CurrentUser
 )
 
 // Definition for a service to manage
@@ -22,8 +25,14 @@ type Program struct {
 	// Arguments to append when service is run
 	Args []string
 
-	// Installation and execution context of the service
-	Context ProgramContext
+	// Path to installer for user context when AllUsers context is specified
+	UserInstaller string
+
+	// Installation context of the service
+	InstallContext ProgramContext
+
+	// Startup context of the service
+	StartupContext ProgramContext
 
 	// Watchdog retry count before failing, -1 for unlimited
 	WatchRetries int

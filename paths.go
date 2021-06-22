@@ -2,27 +2,27 @@ package gowatchprog
 
 import (
 	"fmt"
-	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
 
 // Get the path to the install binary
-func (p *Program) installPathBin() (string, error) {
+func (p *Program) InstallPathBin() (string, error) {
 
 	// Merge install directory with exe file name
-	dir, err := p.installDirectory()
+	dir, err := p.InstallDirectory(false)
 	if err != nil {
 		return "", err
 	}
-	return path.Join(dir, p.ExeFile), nil
+	return filepath.Join(dir, p.ExeFile), nil
 }
 
 // Get the path to the install binary including cli arguments
-func (p *Program) installPathBinWithArgs() (string, error) {
+func (p *Program) InstallPathBinWithArgs() (string, error) {
 
 	// Get current path to executable and args
-	exePath, patherr := p.installPathBin()
+	exePath, patherr := p.InstallPathBin()
 	if patherr != nil {
 		return "", patherr
 	}

@@ -6,10 +6,10 @@ go get github.com/micaiahwallace/gowatchprog
 
 This module was created to help manage background services on machines by providing the following core feature sets.
 
-- Install to a proper location
-- Register service autostart
+- Install to a proper location based on installation context (user, system, allusers)
+- Register service autostart based on service run context
 - Watchdog autorestart
-- Install updates and restart service
+- Install updates remotely
 
 ## Module Definition
 
@@ -26,8 +26,14 @@ type Program struct {
 	// Arguments to append when service is run
 	Args []string
 
-	// Installation and execution context of the service
-	Context ProgramContext
+	// Path to installer for user context when AllUsers context is specified
+	UserInstaller string
+
+	// Installation context of the service
+	InstallContext ProgramContext
+
+	// Startup context of the service
+	StartupContext ProgramContext
 
 	// Watchdog retry count before failing, -1 for unlimited
 	WatchRetries int
@@ -40,26 +46,42 @@ type Program struct {
 }
 ```
 
-## Exported Functions
+## Core Exported Functions
 
 ```go
 // Start the watchdog runner
-func (p *Program) RunWatchdog(quit chan int)
+func (p *Program) RunWatchdog(errs chan error, msgs chan string, quit chan interface{}) 
 
-// Check if the program is installed
-func (p *Program) Installed() bool
+// Install ExeFile specified by sourceBin to the system
+func (p *Program) Install(sourceBin string) error
 
-// Install ExeFile from sourceDir to the system
-func (p *Program) Install(sourceDir string) error
-
-// Register the service to startup automatically, optionally with watchdog service
-func (p *Program) RegisterStartup(watchdog bool) error
+// // Register the installed service startup in windows registry based on p.Context
+func (p *Program) RegisterStartup() error
 
 // Remove the service from automatic startup
 func (p *Program) RemoveStartup() error
 
 // Uninstall ExeFile from the system
 func (p *Program) Uninstall() error
+```
+
+## Exported Helper Functions
+
+```go
+// Check if the program is installed
+func (p *Program) Installed() bool
+
+// Get the path to the installation directory
+func (p *Program) InstallDirectory(create bool) (string, error) 
+
+// Get path to the app data directory
+func (p *Program) DataDirectory(create bool) (string, error)
+
+// Get the path to the install binary
+func (p *Program) InstallPathBin() (string, error)
+
+// Get the path to the install binary including cli arguments
+func (p *Program) InstallPathBinWithArgs() (string, error)
 ```
 
 ## Constants
@@ -69,6 +91,9 @@ const (
 
 	// The app should run under all users interactively
 	AllUsers ProgramContext = 0
+
+	// The installation context is set for the current user
+	CurrentUser ProgramContext = 1
 )
 ```
 

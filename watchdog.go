@@ -1,10 +1,12 @@
 package gowatchprog
 
 import (
-	"log"
+	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -15,20 +17,20 @@ import (
 const PID_FILE = "watchdog.pid"
 
 // Start the watchdog runner
-func (p *Program) RunWatchdog(quit chan int) {
+func (p *Program) RunWatchdog(errs chan error, msgs chan string, quit chan interface{}) {
 
 	// Register a new pid file
-	if !p.createWatchdogLock() {
-		log.Println("unable to create pid file lock")
-		quit <- 0
+	if cwerr := p.createWatchdogLock(); cwerr != nil {
+		errs <- fmt.Errorf("unable to create pid file lock: %v", cwerr)
+		close(quit)
 		return
 	}
 
 	// Get exe path and args
-	exePath, eErr := p.installPathBin()
+	exePath, eErr := p.InstallPathBin()
 	if eErr != nil {
-		log.Println("unable to get installation binary path")
-		quit <- 0
+		errs <- fmt.Errorf("unable to get installation binary path: %v", eErr)
+		close(quit)
 		return
 	}
 
@@ -38,16 +40,16 @@ func (p *Program) RunWatchdog(quit chan int) {
 
 		// Execute command with arguments
 		cmd := exec.Command(exePath, p.Args...)
-		log.Printf("watchdog starting service attempt: %d\n", failCount)
+		msgs <- fmt.Sprintf("watchdog starting service attempt: %d\n", failCount)
 		runErr := cmd.Run()
 		if runErr != nil {
 			failCount++
 		}
-		log.Printf("service completed with error: %v\n", runErr)
+		msgs <- fmt.Sprintf("service completed with error: %v\n", runErr)
 
 		// Check if retries exceeded
 		if failCount >= p.WatchRetries && p.WatchRetries != -1 {
-			log.Println("retry count exceeded, now exiting")
+			msgs <- "retry count exceeded, now exiting"
 			break
 		}
 
@@ -57,56 +59,55 @@ func (p *Program) RunWatchdog(quit chan int) {
 
 	// Remove pid file after completing watchdog
 	if !p.removeWatchdogLock() {
-		log.Println("unable to remove pid file lock")
+		errs <- errors.New("unable to remove pid file lock")
 	}
 
-	quit <- 0
+	close(quit)
 }
 
 // Get a lock to run the watchdog using pid file method
-func (p *Program) createWatchdogLock() bool {
+func (p *Program) createWatchdogLock() error {
 
 	// get pid file path
-	installDir, derr := p.installDirectory()
+	dataDir, derr := p.DataDirectory(true)
 	if derr != nil {
-		return false
+		return derr
 	}
-	pidPath := path.Join(installDir, PID_FILE)
+	pidPath := filepath.Join(dataDir, PID_FILE)
 
 	// Test if can create lock
-	if !p.canWatchdogLock(pidPath) {
-		return false
+	if lerr := p.canWatchdogLock(pidPath); lerr != nil {
+		return lerr
 	}
 
 	// create pid file with current pid and return true
 	curPid := os.Getpid()
-	err := os.WriteFile(pidPath, []byte(strconv.Itoa(curPid)), 0644)
-	return err == nil
+	return os.WriteFile(pidPath, []byte(strconv.Itoa(curPid)), 0644)
 }
 
 // Remove a watchdog pid lock file
 func (p *Program) removeWatchdogLock() bool {
 
 	// get pid file path
-	installDir, derr := p.installDirectory()
+	dataDir, derr := p.DataDirectory(false)
 	if derr != nil {
 		return false
 	}
-	pidPath := path.Join(installDir, PID_FILE)
+	pidPath := filepath.Join(dataDir, PID_FILE)
 
 	// Remove the file
 	return os.Remove(pidPath) == nil
 }
 
 // returns true if watchdog is able to get a lock
-func (p *Program) canWatchdogLock(pidPath string) bool {
+func (p *Program) canWatchdogLock(pidPath string) error {
 
 	pidContents, ferr := os.ReadFile(pidPath)
 	if ferr != nil {
 
 		// Test if pid file exists
 		if os.IsNotExist(ferr) {
-			return true
+			return nil
 		}
 	}
 
@@ -114,16 +115,20 @@ func (p *Program) canWatchdogLock(pidPath string) bool {
 	if nerr != nil {
 
 		// Invalid pid format, allow lock creation
-		return true
+		return nil
 	}
 
 	proc, perr := ps.FindProcess(pidNum)
-	if perr != nil {
-		return false
+	if perr != nil || proc == nil {
+		return perr
 	}
 
 	currentBinFile := path.Base(os.Args[0])
 
 	// Ensure pid doesn't refer to same process binary
-	return proc.Executable() != currentBinFile
+	if proc.Executable() == currentBinFile {
+		return errors.New("watchdog already running")
+	}
+
+	return nil
 }

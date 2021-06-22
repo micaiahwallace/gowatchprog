@@ -3,27 +3,21 @@ package gowatchprog
 import (
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 )
 
-// Install a service to the system
-func (p *Program) Install(sourceDir string) error {
-
-	// Test if source binary exists
-	srcBin := path.Join(sourceDir, p.ExeFile)
+// Install ExeFile specified by sourceBin to the system
+func (p *Program) Install(sourceBin string) error {
 
 	// Ensure install directory exists
-	dstDir, dsterr := p.installDirectory()
+	dstDir, dsterr := p.InstallDirectory(true)
 	if dsterr != nil {
 		return dsterr
 	}
-	if mkdsterr := os.MkdirAll(dstDir, 0644); mkdsterr != nil {
-		return fmt.Errorf("unable to create install dir: %v", mkdsterr)
-	}
-	dstBin := path.Join(dstDir, p.ExeFile)
+	dstBin := filepath.Join(dstDir, p.ExeFile)
 
 	// Copy source binary into install dir
-	return copyFileContents(srcBin, dstBin)
+	return copyFileContents(sourceBin, dstBin)
 }
 
 // Uninstall service from the system
@@ -35,7 +29,7 @@ func (p *Program) Uninstall() error {
 	}
 
 	// Get install directory
-	dir, err := p.installDirectory()
+	dir, err := p.InstallDirectory(false)
 	if err != nil {
 		return err
 	}
@@ -51,7 +45,7 @@ func (p *Program) Uninstall() error {
 func (p *Program) Installed() bool {
 
 	// Get binary file path
-	binpath, berr := p.installPathBin()
+	binpath, berr := p.InstallPathBin()
 	if berr != nil {
 		return false
 	}
