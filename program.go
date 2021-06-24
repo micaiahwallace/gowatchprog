@@ -2,18 +2,22 @@ package gowatchprog
 
 import "time"
 
+// Specifies the type of program installation, so that Program can customize how it installs and configures startup on each system.
 type ProgramContext int
 
 const (
 
-	// The installation context is global for all users
+	// A global context to install and run user session software for all users
 	AllUsers ProgramContext = iota
 
-	// The installation context is set for the current user
+	// A local context to install and run user session software for the current user
 	CurrentUser
+
+	// A global context to install and run a system level service not running in a user context
+	SystemService
 )
 
-// Definition for a service to manage
+// Program defines a program installation that can be used to install, uninstall or start a watchdog based on the defined properties.
 type Program struct {
 
 	// Name of the service

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -27,7 +26,7 @@ func (p *Program) RunWatchdog(errs chan error, msgs chan string, quit chan inter
 	}
 
 	// Get exe path and args
-	exePath, eErr := p.InstallPathBin()
+	exePath, eErr := p.InstalledBinary()
 	if eErr != nil {
 		errs <- fmt.Errorf("unable to get installation binary path: %v", eErr)
 		close(quit)
@@ -58,8 +57,8 @@ func (p *Program) RunWatchdog(errs chan error, msgs chan string, quit chan inter
 	}
 
 	// Remove pid file after completing watchdog
-	if !p.removeWatchdogLock() {
-		errs <- errors.New("unable to remove pid file lock")
+	if rmwErr := p.removeWatchdogLock(); rmwErr != nil {
+		errs <- rmwErr
 	}
 
 	close(quit)
@@ -86,17 +85,17 @@ func (p *Program) createWatchdogLock() error {
 }
 
 // Remove a watchdog pid lock file
-func (p *Program) removeWatchdogLock() bool {
+func (p *Program) removeWatchdogLock() error {
 
 	// get pid file path
 	dataDir, derr := p.DataDirectory(false)
 	if derr != nil {
-		return false
+		return derr
 	}
 	pidPath := filepath.Join(dataDir, PID_FILE)
 
 	// Remove the file
-	return os.Remove(pidPath) == nil
+	return os.Remove(pidPath)
 }
 
 // returns true if watchdog is able to get a lock
@@ -123,12 +122,43 @@ func (p *Program) canWatchdogLock(pidPath string) error {
 		return perr
 	}
 
-	currentBinFile := path.Base(os.Args[0])
-
 	// Ensure pid doesn't refer to same process binary
-	if proc.Executable() == currentBinFile {
+	if proc.Executable() == p.ExeFile {
 		return errors.New("watchdog already running")
 	}
 
 	return nil
 }
+
+/**
+
+reorganization brainstorm:
+
+// Get the path to watchdog pid file
+getPidPath
+	return path(dataDir, PID_FILE)
+
+// get a reference to the process identified in the pid file if it exists
+getPidFileProcess
+	read pid file
+	convert pid string to int
+	get process from pid
+	return process
+
+// validate and create a watchdog pid file
+createWatchdogLock
+	if !canLockWatchdog {
+		return err
+	}
+	writePidFile(pidPath)
+
+// validate if pid file can be created
+canLockWatchdog(pid)
+	if !fileExists {
+		return true
+	}
+	if getPidFileProcess.Exe == currentExeFile {
+		return false
+	}
+	return true
+*/

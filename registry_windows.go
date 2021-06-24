@@ -2,6 +2,7 @@ package gowatchprog
 
 import (
 	"fmt"
+	"strconv"
 
 	"golang.org/x/sys/windows/registry"
 )
@@ -57,6 +58,43 @@ func removeRegistry(key registry.Key, path, keyName string) error {
 	// Remove the specified value
 	if err := regKey.DeleteValue(keyName); err != nil {
 		return fmt.Errorf("unable to delete registry value: %v. %v", keyName, err)
+	}
+
+	return nil
+}
+
+// Create or bump up the version number for an active setup registry key
+func bumpActiveSetupVersion(key registry.Key, name string) error {
+
+	// Get the registry key path
+	keyPath := fmt.Sprintf(`SOFTWARE\Microsoft\Active Setup\Installed Components\%v`, name)
+
+	// Open registry key
+	regKey, kerr := registry.OpenKey(key, keyPath, registry.SET_VALUE|registry.QUERY_VALUE)
+	if kerr != nil {
+		return fmt.Errorf("unable to open registry: %v. %v", keyPath, kerr)
+	}
+
+	// Get the current version number
+	currentVer, _, verr := regKey.GetStringValue("Version")
+	if verr == registry.ErrNotExist {
+		currentVer = "0"
+	} else if verr != nil {
+		return verr
+	}
+
+	// Convert version to an int
+	cvNum, convErr := strconv.Atoi(currentVer)
+	if convErr != nil {
+		return convErr
+	}
+
+	// Get the next version in string form
+	newVersion := strconv.Itoa(cvNum + 1)
+
+	// Write the new version to the registry
+	if wrErr := regKey.SetStringValue("Version", newVersion); wrErr != nil {
+		return wrErr
 	}
 
 	return nil

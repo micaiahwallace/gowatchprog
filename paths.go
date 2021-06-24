@@ -1,16 +1,32 @@
+/**
+file: paths.go
+
+This file provides functions for getting paths to various
+files and directories regarding the program and its contexts.
+
+*/
 package gowatchprog
 
 import (
-	"fmt"
+	"errors"
 	"path/filepath"
 	"regexp"
-	"strings"
 )
 
-// Get the path to the install binary
-func (p *Program) InstallPathBin() (string, error) {
+var ErrPathNotFound = errors.New("path not found")
 
-	// Merge install directory with exe file name
+// Get the path to the installation directory
+func (p *Program) InstallDirectory(create bool) (string, error) {
+	return getInstallDirectory(p.InstallContext, create)
+}
+
+// Get the path to the installation data directory
+func (p *Program) DataDirectory(create bool) (string, error) {
+	return getInstallDirectory(p.StartupContext, create)
+}
+
+// Get the path to the ExeFile inside the installation directory
+func (p *Program) InstalledBinary() (string, error) {
 	dir, err := p.InstallDirectory(false)
 	if err != nil {
 		return "", err
@@ -19,22 +35,16 @@ func (p *Program) InstallPathBin() (string, error) {
 }
 
 // Get the path to the install binary including cli arguments
-func (p *Program) InstallPathBinWithArgs() (string, error) {
-
-	// Get current path to executable and args
-	exePath, patherr := p.InstallPathBin()
-	if patherr != nil {
-		return "", patherr
+func (p *Program) InstalledCommandLine() (string, error) {
+	exePath, pathErr := p.InstalledBinary()
+	if pathErr != nil {
+		return "", pathErr
 	}
-
-	// Append program arguments to executable string
-	exePath = fmt.Sprintf(`"%s"`, exePath)
-	if p.Args != nil {
-		parts := append([]string{exePath}, p.Args...)
-		exePath = strings.Join(parts, " ")
+	args := p.Args
+	if args == nil {
+		args = []string{}
 	}
-
-	return exePath, nil
+	return getCommandLine(exePath, args), nil
 }
 
 // Returns a name safe to use for a directory and registry key

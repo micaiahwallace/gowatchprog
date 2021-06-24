@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
-// Install ExeFile specified by sourceBin to the system
-func (p *Program) Install(sourceBin string) error {
+// Install sourceBin binary file to p.ExeFile in the install directory
+func (p *Program) InstallBinary(sourceBin string) error {
 
 	// Ensure install directory exists
 	dstDir, dsterr := p.InstallDirectory(true)
@@ -20,24 +21,51 @@ func (p *Program) Install(sourceBin string) error {
 	return copyFileContents(sourceBin, dstBin)
 }
 
-// Uninstall service from the system
+// Remove installation directories specified by InstallContext and StartupContext
+func (p *Program) RemoveInstallation() error {
+
+	erroredCmds := []string{}
+
+	// Remove InstallContext install directory
+	if riErr := removeContextDirectory(p.InstallContext); riErr != nil {
+		erroredCmds = append(erroredCmds, riErr.Error())
+	}
+
+	// Remove StartupContext install directory (if different from InstallContext)
+	if p.StartupContext != p.InstallContext {
+		if rsErr := removeContextDirectory(p.StartupContext); rsErr != nil {
+			erroredCmds = append(erroredCmds, rsErr.Error())
+		}
+	}
+
+	// Return any removal errors
+	if len(erroredCmds) > 0 {
+		return fmt.Errorf("failed to remove install directories: %s", strings.Join(erroredCmds, ", "))
+	}
+
+	return nil
+}
+
+// Uninstall is equivalent to running RemoveStartup() then RemoveInstallation()
 func (p *Program) Uninstall() error {
 
+	erroredCmds := []string{}
+
 	// Unregister startup
-	if rmerr := p.RemoveStartup(); rmerr != nil {
-		return fmt.Errorf("unable to remove startup: %v", rmerr)
+	if rsErr := p.RemoveStartup(); rsErr != nil {
+		erroredCmds = append(erroredCmds, fmt.Sprintf("unable to remove startup: %v", rsErr))
 	}
 
-	// Get install directory
-	dir, err := p.InstallDirectory(false)
-	if err != nil {
-		return err
+	// Remove installation directories
+	if rdErr := p.RemoveInstallation(); rdErr != nil {
+		erroredCmds = append(erroredCmds, rdErr.Error())
 	}
 
-	// Remove installation directory
-	if rderr := os.RemoveAll(dir); rderr != nil {
-		return fmt.Errorf("unable to remove install dir: %v", rderr)
+	// Return any uninstall errors
+	if len(erroredCmds) > 0 {
+		return fmt.Errorf("uninstall failed: %s", strings.Join(erroredCmds, ", "))
 	}
+
 	return nil
 }
 
@@ -45,7 +73,7 @@ func (p *Program) Uninstall() error {
 func (p *Program) Installed() bool {
 
 	// Get binary file path
-	binpath, berr := p.InstallPathBin()
+	binpath, berr := p.InstalledBinary()
 	if berr != nil {
 		return false
 	}

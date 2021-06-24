@@ -1,3 +1,18 @@
+/**
+Steps to register startup for AllUsers on windows:
+		- Create an active setup registry key for the program
+		- Add a Version value to the key, or bump it up if it exists
+		- Add a StubPath value providing the user installation command
+
+		The next time any user logs in, they will run the command if
+		their hkey current user version for the program doesn't match.
+		This command should be the path to an executable that runs the
+		register startup with a CurrentUser StartupContext to complete the
+		installation.
+
+Steps to register startup for CurrentUser on windows:
+		Simply add the command string value for the program to the registry run key
+*/
 package gowatchprog
 
 import (
@@ -14,42 +29,33 @@ import (
 // when each user logs in for the first time after AllUsers install is run
 func (p *Program) RegisterStartup() error {
 
-	// Get current path to executable and args
-	exePath, patherr := p.InstallPathBinWithArgs()
+	exePath, patherr := p.InstalledCommandLine()
 	if patherr != nil {
 		return patherr
 	}
 
-	// Perform context specific startup logic
 	switch p.StartupContext {
 
 	case AllUsers:
-
-		// Check for installer path
 		if p.UserInstaller == "" {
-			return errors.New("program.UserInstaller must be set before registering startup with ProgramContext AllUsers")
+			return errors.New("UserInstaller must be set before registering startup with AllUsers StartupContext")
 		}
-
-		// Create active setup registry key
 		if nkErr := createRegistryKey(registry.LOCAL_MACHINE, fmt.Sprintf(`SOFTWARE\Microsoft\Active Setup\Installed Components\%v`, p.safeName())); nkErr != nil {
 			return nkErr
 		}
-
-		// Set installation version
-		if addVerErr := writeRegistry(registry.LOCAL_MACHINE, fmt.Sprintf(`SOFTWARE\Microsoft\Active Setup\Installed Components\%v`, p.safeName()), "Version", "1"); addVerErr != nil {
+		if addVerErr := bumpActiveSetupVersion(registry.LOCAL_MACHINE, p.safeName()); addVerErr != nil {
 			return addVerErr
 		}
-
-		// Set installation command for each user
 		return writeRegistry(registry.LOCAL_MACHINE, fmt.Sprintf(`SOFTWARE\Microsoft\Active Setup\Installed Components\%v`, p.safeName()), "StubPath", p.UserInstaller)
 
 	case CurrentUser:
-
-		// Write the run registry key for the current user
 		return writeRegistry(registry.CURRENT_USER, `SOFTWARE\Microsoft\Windows\CurrentVersion\Run`, p.safeName(), exePath)
 
+	case SystemService:
+		return errors.New("system service startup not yet implemented on windows")
+
 	default:
-		return errors.New("unknown ProgramContext specified")
+		return errors.New("unknown startup context")
 	}
 
 	return nil
@@ -57,17 +63,21 @@ func (p *Program) RegisterStartup() error {
 
 // Remove the installed service from startup
 func (p *Program) RemoveStartup() error {
+
 	switch p.StartupContext {
+
 	case AllUsers:
-
 		// remove active setup key, @todo find a way to remove startup key from all users
-		if rmKeyErr := deleteRegistryKey(registry.LOCAL_MACHINE, fmt.Sprintf(`SOFTWARE\Microsoft\Active Setup\Installed Components\%v`, p.safeName())); rmKeyErr != nil {
-			return rmKeyErr
-		}
-	case CurrentUser:
+		return deleteRegistryKey(registry.LOCAL_MACHINE, fmt.Sprintf(`SOFTWARE\Microsoft\Active Setup\Installed Components\%v`, p.safeName()))
 
-		// Remove the current user run key
+	case CurrentUser:
 		return removeRegistry(registry.CURRENT_USER, `SOFTWARE\Microsoft\Windows\CurrentVersion\Run`, p.safeName())
+
+	case SystemService:
+		return errors.New("system service startup not yet implemented on windows")
+
+	default:
+		return errors.New("unknown startup context")
 	}
 
 	return nil
