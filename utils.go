@@ -5,9 +5,20 @@ import (
 	"strings"
 )
 
-// Create a runnable command line string with arguments appended
-func getCommandLine(binPath string, args []string) string {
+// Wrap the binary path in quotes and append the space
+// separated args at the end, return the final string
+func GetCommandLine(binPath string, args []string) string {
+
+	// ensure args are not nil
+	var safeArgs = args
+	if safeArgs == nil {
+		safeArgs = []string{}
+	}
+
+	// add quotes around all paths
 	quotedPath := fmt.Sprintf(`"%s"`, binPath)
-	parts := append([]string{quotedPath}, args...)
+
+	// place bin and args together then join with a space separator
+	parts := append([]string{quotedPath}, safeArgs...)
 	return strings.Join(parts, " ")
 }

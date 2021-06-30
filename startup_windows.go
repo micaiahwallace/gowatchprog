@@ -29,10 +29,13 @@ import (
 // when each user logs in for the first time after AllUsers install is run
 func (p *Program) RegisterStartup() error {
 
-	exePath, patherr := p.InstalledCommandLine()
-	if patherr != nil {
-		return patherr
+	binPath, pathErr := p.InstalledBinary()
+	if pathErr != nil {
+		return pathErr
 	}
+
+	cmdPath := GetCommandLine(binPath, p.Args)
+	pName := p.SafeName()
 
 	switch p.StartupContext {
 
@@ -40,44 +43,46 @@ func (p *Program) RegisterStartup() error {
 		if p.UserInstaller == "" {
 			return errors.New("UserInstaller must be set before registering startup with AllUsers StartupContext")
 		}
-		if nkErr := createRegistryKey(registry.LOCAL_MACHINE, fmt.Sprintf(`SOFTWARE\Microsoft\Active Setup\Installed Components\%v`, p.safeName())); nkErr != nil {
+		if _, _, nkErr := registry.CreateKey(registry.LOCAL_MACHINE, fmt.Sprintf(`SOFTWARE\Microsoft\Active Setup\Installed Components\%v`, pName), registry.SET_VALUE); nkErr != nil {
 			return nkErr
 		}
-		if addVerErr := bumpActiveSetupVersion(registry.LOCAL_MACHINE, p.safeName()); addVerErr != nil {
+		if addVerErr := bumpActiveSetupVersion(registry.LOCAL_MACHINE, pName); addVerErr != nil {
 			return addVerErr
 		}
-		return writeRegistry(registry.LOCAL_MACHINE, fmt.Sprintf(`SOFTWARE\Microsoft\Active Setup\Installed Components\%v`, p.safeName()), "StubPath", p.UserInstaller)
+		return writeRegistry(registry.LOCAL_MACHINE, fmt.Sprintf(`SOFTWARE\Microsoft\Active Setup\Installed Components\%v`, pName), "StubPath", p.UserInstaller)
 
 	case CurrentUser:
-		return writeRegistry(registry.CURRENT_USER, `SOFTWARE\Microsoft\Windows\CurrentVersion\Run`, p.safeName(), exePath)
+		return writeRegistry(registry.CURRENT_USER, `SOFTWARE\Microsoft\Windows\CurrentVersion\Run`, pName, cmdPath)
 
 	case SystemService:
 		return errors.New("system service startup not yet implemented on windows")
 
 	default:
-		return errors.New("unknown startup context")
+		return ErrInvalidContext
 	}
 
 	return nil
 }
 
-// Remove the installed service from startup
+// Remove the installed service from startup on windows
 func (p *Program) RemoveStartup() error {
+
+	pName := p.SafeName()
 
 	switch p.StartupContext {
 
 	case AllUsers:
 		// remove active setup key, @todo find a way to remove startup key from all users
-		return deleteRegistryKey(registry.LOCAL_MACHINE, fmt.Sprintf(`SOFTWARE\Microsoft\Active Setup\Installed Components\%v`, p.safeName()))
+		return deleteRegistryKey(registry.LOCAL_MACHINE, fmt.Sprintf(`SOFTWARE\Microsoft\Active Setup\Installed Components\%v`, pName))
 
 	case CurrentUser:
-		return removeRegistry(registry.CURRENT_USER, `SOFTWARE\Microsoft\Windows\CurrentVersion\Run`, p.safeName())
+		return removeRegistry(registry.CURRENT_USER, `SOFTWARE\Microsoft\Windows\CurrentVersion\Run`, pName)
 
 	case SystemService:
 		return errors.New("system service startup not yet implemented on windows")
 
 	default:
-		return errors.New("unknown startup context")
+		return ErrInvalidContext
 	}
 
 	return nil

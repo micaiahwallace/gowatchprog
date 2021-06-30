@@ -1,24 +1,37 @@
-package gowatchprog
+package gowatchprog_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/micaiahwallace/gowatchprog"
+	"github.com/stretchr/testify/assert"
+)
 
 func TestSafeName(t *testing.T) {
 
-	// Test name with non-ascii characters
-	t1input := "Test name!@here123"
-	t1 := &Program{Name: t1input}
-	t1actual := t1.safeName()
-	t1wanted := "Test-name--here123"
-	if t1actual != t1wanted {
-		t.Errorf("safeName(%s) = \"%s\"; Wanted \"%s\"", t1input, t1actual, t1wanted)
+	testCases := []struct {
+		name           string
+		inputName      string
+		expectedResult string
+	}{
+		{
+			name:           "safeName replaces non-ascii symbols with dashes when they are present",
+			inputName:      "Test name!@here123",
+			expectedResult: "Test-name--here123",
+		},
+		{
+			name:           "safeName returns the input value when it is valid",
+			inputName:      "ok-name-here",
+			expectedResult: "ok-name-here",
+		},
 	}
 
-	// Test with a valid name
-	t2input := "ok-name-here"
-	t2 := &Program{Name: t2input}
-	t2actual := t2.safeName()
-	t2wanted := "ok-name-here"
-	if t2actual != t2wanted {
-		t.Errorf("safeName(%s) = \"%s\"; Wanted \"%s\"", t2input, t2actual, t2wanted)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			p := &gowatchprog.Program{Name: tc.inputName}
+			actual := p.SafeName()
+			assert.Equal(t, tc.expectedResult, actual)
+		})
 	}
 }
