@@ -38,8 +38,8 @@ func (p *Program) RunWatchdog(errs chan error, msgs chan string, quit chan inter
 	for {
 
 		// Execute command with arguments
-		cmd := exec.Command(exePath, p.Args...)
 		msgs <- fmt.Sprintf("watchdog starting service attempt: %d\n", failCount)
+		cmd := exec.Command(exePath, p.Args...)
 		runErr := cmd.Run()
 		if runErr != nil {
 			failCount++
@@ -102,32 +102,37 @@ func (p *Program) removeWatchdogLock() error {
 func (p *Program) canWatchdogLock(pidPath string) error {
 
 	pidContents, ferr := os.ReadFile(pidPath)
-	if ferr != nil {
 
-		// Test if pid file exists
-		if os.IsNotExist(ferr) {
-			return nil
-		}
+	// If PID file cannot be read for some reason, don't allow lock creation
+	if os.IsPermission(ferr) || os.IsTimeout(ferr) {
+		return ferr
 	}
 
-	pidNum, nerr := strconv.Atoi(strings.TrimSpace(string(pidContents)))
-	if nerr != nil {
-
-		// Invalid pid format, allow lock creation
+	// If PID file doesn't exist, allow lock creation
+	if os.IsNotExist(ferr) {
 		return nil
 	}
 
-	proc, perr := ps.FindProcess(pidNum)
-	if perr != nil || proc == nil {
-		return perr
+	pidNum, nerr := strconv.Atoi(strings.TrimSpace(string(pidContents)))
+
+	// Unable to parse PID value from file, allow lock creation
+	if nerr != nil {
+		return nil
+	}
+
+	proc, _ := ps.FindProcess(pidNum)
+
+	// Process was not found or there was an error getting the process, allow lock creation
+	if proc == nil {
+		return nil
 	}
 
 	// Ensure pid doesn't refer to same process binary
-	if proc.Executable() == p.ExeFile {
-		return errors.New("watchdog already running")
+	if proc.Executable() != p.ExeFile {
+		return nil
 	}
 
-	return nil
+	return errors.New("watchdog already running")
 }
 
 /**
